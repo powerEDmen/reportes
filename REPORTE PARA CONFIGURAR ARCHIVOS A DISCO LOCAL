@@ -1,0 +1,150 @@
+<html>
+<head>
+</head>
+<body>
+	<div>
+  		<fieldset>  
+    	<legend>Generar Archivo </legend>
+    		<p><button type="button" onclick=GeneraArchTxtServer()>PROCESAR</button>
+  		</fieldset>
+	</div>
+	<div style="display: none">
+		<textarea name="texsq" rows="1" cols="1" disabled>
+		select 
+			 	rtrim(pc.vendedor) vendedor 
+			 	, rtrim(st.articulo) codigo 
+			 	, rtrim(ar.descrip) descripcion 
+			 	, sum(case when st.tipomov=1 then st.cantidad else -st.cantidad end) saldo 
+			 	, case when ar.activo=0 then 'NO' else 'SI' end activo 
+			 	, 1 orden  
+			 	into #auxinv 
+			 from pwst_b2c_configuracion_deposito pc 
+			 	left join movstock st on pc.deposito=st.deposito 
+			 	left join articulo ar on st.articulo=ar.codigo 
+			 where   
+			 	pc.vendedor between @Desde Vendedor and @Hasta Vendedor and st.fecha<=@Fecha 
+			 group by 
+			 	pc.vendedor, st.articulo, ar.descrip, ar.activo; 
+
+			 insert #auxinv 
+			 select 
+			 	rtrim('') vendedor 
+			 	, rtrim('TOTAL') codigo 
+			 	, rtrim('') descripcion 
+			 	, sum(case when st.tipomov=1 then st.cantidad else -st.cantidad end) saldo 
+			 	, '' activo 
+			 	, 2 orden 
+			 from pwst_b2c_configuracion_deposito pc 
+			 	left join movstock st on pc.deposito=st.deposito 
+			 	left join articulo ar on st.articulo=ar.codigo 
+			 where  
+			 	pc.vendedor between @Desde Vendedor and @Hasta Vendedor and st.fecha<=@Fecha;   
+			 	
+			 	select
+			 	'vendedor'vendedor,
+			 	'codigo' codigo,
+			 	'descripcion' descripcion,
+			 	'saldo' saldo,
+			 	'activo' activo,
+			 	'1' orden
+			 	
+			 	union
+			 	
+			 	
+			 	
+			 	
+		
+			 select 
+			 
+			 rtrim(vendedor) ven,
+			 rtrim(codigo) cod,
+			 rtrim(descripcion) des,
+			 rtrim(saldo) sal,
+			 rtrim(activo) act,
+			 '2' orden
+			 
+			 
+			 from #auxinv pc 
+			 where 
+			 	saldo>0 
+			 order by 
+			 	orden, vendedor,codigo; 
+			
+			 drop table #auxinv; 
+			
+							
+							
+
+</textarea>
+	</div>
+	
+</body>
+</html>
+
+<script language="JavaScript"> 
+var instanceManager = new ActiveXObject( "PwstInstanceManager.InstanceManager" );
+var PowerStreet = instanceManager.PowerStreet;
+var oApp = instanceManager.PwstUI;
+oApp.msg_status( "" );
+
+	function GeneraArchTxtServer()
+	{	
+		oApp.msg_status( "GENERANDO CONSULTA DE DATOS" );
+		var d = new Date();
+		var	nomArch = "VentaPorFacturayArticuloDetallado"  +"_"+  d.getDate().toString() +"_"+ (d.getMonth()+1).toString() +"_"+ d.getFullYear().toString() +"_"+ d.getHours().toString() +"_"+ d.getMinutes().toString() +"_"+ d.getSeconds().toString() +".txt";
+
+		//Codigo para ejecutar codigo en el servidor
+		var script = PowerStreet.CreateScriptingProcess();
+		var o = document.getElementById("ScripServer"); 
+		script.AddCode( "JScript", o.innerHTML );
+		script.Request.SetVariable( "sqText", texsq.value ); 
+		
+		if( script.Run("runServer") ) 
+		{
+			script.Response.SaveFile("salida", "C:\\reportepwst\\" + nomArch  ); 
+			PowerStreet.UI.Alert("Archivo '" + nomArch + "'  Generado");		
+		}		
+		
+		oApp.managePwstErrors();
+	}
+
+
+</script>
+
+
+
+<script id="ScripServer" language="JavaScript"> 
+
+
+	function runServer(PowerStreet, ObjProcess)
+	{
+		var colums=5;
+		
+		var nomArch="TempXX1.txt"
+		var fso, f, ts;
+		var ForReading = 1, ForWriting = 2, ForAppending = 8; 
+		var TristateUseDefault = -2, TristateTrue = -1, TristateFalse = 0; 
+		var tArea = ObjProcess.Request.GetVariable("sqText", "")		
+		
+		fso = new ActiveXObject("Scripting.FileSystemObject"); 
+		fso.CreateTextFile(ObjProcess.WorkFolder.Path +"\\" + nomArch);  
+		f = fso.GetFile(ObjProcess.WorkFolder.Path +"\\" + nomArch);  
+		ts = f.OpenAsTextStream(ForWriting, TristateUseDefault); 
+
+		var sq = PowerStreet.OpenRecordset(tArea);
+		
+		for (i=1; i<= sq.Recordcount; i++)
+		{
+			for (a=0; a<colums; a++)
+			{
+				ts.Write( sq.collect(a) + "\t");
+			}
+			ts.Write("\r\n");
+			sq.movenext();
+		}
+		
+		ObjProcess.Response.AddFile ("salida", ObjProcess.WorkFolder.Path +"\\" + nomArch);
+		
+	}
+
+</script>

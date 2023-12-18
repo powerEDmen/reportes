@@ -1,0 +1,258 @@
+IF (OBJECT_ID('tempdb..#TotalFinal')) IS NOT NULL DROP TABLE #TotalFinal;
+IF (OBJECT_ID('tempdb..#auxfinal')) IS NOT NULL DROP TABLE #auxfinal;
+IF (OBJECT_ID('tempdb..#auximpuestos')) IS NOT NULL DROP TABLE #auximpuestos;	
+
+
+create table #TotalFinal ( fecha date, 
+						   familia char (50),
+						   codigo char (50),
+						   Descripcion char (200),
+						   peso numeric (12),
+						   Venta numeric (12,2),
+						   Devol numeric (12,2),
+						   Cantidad_Tot numeric (12,2),
+						   Kilos numeric (12,2),
+						   importe numeric (12,2),
+						   Descuento numeric (12,2),
+						   Subtotal numeric (12,2),
+						   TotalVenta numeric (12,2),
+						   TotalDev numeric (12,2),
+						   TotalDn numeric (12,2),
+						   especifico numeric (12,2),
+                           advalorem numeric (12,2), 
+						   itbis numeric (12,2)
+						);
+
+
+Select                          
+	do.fecha,
+	' ('+rtrim(art.familia)+') -'+rtrim(fam.descrip) familia,
+	art.codigo codigo,
+	art.descrip descripcion,
+	art.peso,
+	sum( (case when td.venta=2 then (da.cantidad*td.Indiventa) else 0 end)) Venta,
+	sum((case when td.Venta=3 then (da.cantidad*td.Indiventa) else 0 end)) Devol,
+	sum((da.cantidad*td.Indiventa)) CantidadTotal,
+	sum(((da.cantidad*art.peso)*td.Indiventa)) kilos,
+	sum(((da.impreng)*td.indiventa)) Importe,
+	sum((da.totdto*td.indiventa)) Descuento,
+	sum(((da.totreng-da.totimp)*td.Indiventa)) Subtotal,
+	sum((case when td.venta=2 then da.totreng*td.Indiventa else 0 end)) TotalVenta,
+	sum((case when td.venta=3 then da.totreng*td.Indiventa else 0 end)) TotalDev,
+	sum((da.totreng*td.Indiventa)) TotalDin
+
+into #auxfinal	
+FROM documentos do
+
+	join docarti da on do.empresa=da.empresa and do.clavecorr=da.clavecorr and do.serie=da.serie and do.nrodoc=da.nrodoc 
+	join articulo art on da.articulo= art.codigo
+	join familias fam on art.familia= fam.codigo
+	join tipodoc  td on do.tipodocum= td.codigo
+	join cuentas c on c.codigo=do.cuenta and c.tipocuenta=do.tipocuenta
+	join vendedor v on v.codigo=do.vendedor
+WHERE 
+	 do.fecha BETWEEN @Desde Fecha and @Hasta Fecha
+	and do.anulado=0  
+	and td.venta>1
+	and do.clavecorr not in ('TRA','SWE','SWD')
+	and do.tipocuenta=1
+	and v.agencia between @Desde Cedis and @Hasta Cedis
+	and v.distribuidor = @Afiliada
+
+#if{@Articulo<>''}
+	and da.articulo=@Articulo
+#endif
+
+#if{@Familia<>''}
+	and art.familia=@Familia
+#endif
+
+GROUP BY
+	do.fecha,art.familia, fam.descrip, art.codigo,art.codialte,art.descrip,art.peso,art.unidad,da.codreng,do.empresa,do.serie, do.clavecorr, do.nrodoc--,td.indiventa
+ORDER BY
+	do.fecha, art.familia,art.codigo;
+	
+
+insert into #TotalFinal (fecha, Familia, codigo, descripcion, peso, Venta, Devol,  Cantidad_Tot, Kilos, Importe, Descuento, Subtotal, TotalVenta, TotalDev, TotalDn)
+
+Select 
+
+	cast (Fecha as date) fecha
+	,Familia
+	,Codigo
+	,Descripcion
+	,peso
+	,sum(Venta)Venta         
+	,sum(Devol) Devol        
+	,sum(CantidadTotal)CantidadTotal
+	,sum(kilos)kilos         
+	,sum(Importe)Importe      
+	,sum(Descuento)Descuento     
+	,sum(Subtotal)Subtotal     
+	,Sum(TotalVenta)TotalVenta
+	,sum(totaldev)totaldev
+	,sum(totaldin)totaldin
+
+From #auxfinal
+
+group by 	Fecha
+	,Familia
+	,Codigo
+	,Descripcion
+	,peso
+
+;
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+SELECT   
+	do.fecha,
+	do.empresa,do.serie, do.clavecorr, do.nrodoc,
+	' ('+rtrim(art.familia)+') -'+rtrim(fam.descrip) familia,
+	art.codigo codigo,
+	art.descrip descripcion,
+	art.peso,
+	sum((case when di.impuesto=10 then di.importe else 0 end)*td.indiventa) especifico,
+	sum((case when di.impuesto=11 then di.importe else 0 end)*td.indiventa) advalorem,
+	sum((case when di.impuesto=12 then di.importe else 0 end)*td.indiventa) itbis
+	
+
+into #auximpuestos	
+FROM documentos do
+	join docarti da on do.empresa=da.empresa and do.clavecorr=da.clavecorr and do.serie=da.serie and do.nrodoc=da.nrodoc 
+	join docartimpu di on di.empresa=da.empresa and di.clavecorr=da.clavecorr and di.serie=da.serie and di.nrodoc=da.nrodoc and di.codreng=da.codreng
+	join articulo art on da.articulo= art.codigo
+	join familias fam on art.familia= fam.codigo
+	join tipodoc  td on do.tipodocum= td.codigo
+	join cuentas c on c.codigo=do.cuenta and c.tipocuenta=do.tipocuenta
+	join vendedor v on v.codigo=do.vendedor
+WHERE 
+	 do.fecha BETWEEN @Desde Fecha and @Hasta Fecha
+	and do.anulado=0  
+	and td.venta>1
+	and do.clavecorr not in ('TRA','SWE','SWD')
+	and do.tipocuenta=1
+	and v.agencia between @Desde Cedis and @Hasta Cedis
+	and v.distribuidor = @Afiliada
+	
+
+#if{@Articulo<>''}
+	and da.articulo=@Articulo
+#endif
+
+#if{@Familia<>''}
+	and art.familia=@Familia
+#endif
+
+GROUP BY
+	do.fecha,art.familia, fam.descrip, art.codigo,art.codialte,art.descrip,art.peso,art.unidad,da.codreng,do.empresa,do.serie, do.clavecorr, do.nrodoc--,td.indiventa
+ORDER BY
+	do.fecha, art.familia,art.codigo;
+	
+
+insert into #TotalFinal (fecha, Familia, codigo, descripcion, peso, Especifico, Advalorem, itbis)
+
+Select   
+ 		cast (Fecha as date) fecha
+		,Familia
+		,codigo
+		,Descripcion
+		,Peso
+		,sum( (Especifico))Especifico
+		,sum( (Advalorem))Advalorem
+		,sum( (itbis))itbis
+
+		
+		
+
+
+ from #auximpuestos	
+ 
+ group by  		
+ 		Fecha 
+		,Familia
+		,codigo
+		,Descripcion
+		,Peso
+
+;
+
+
+
+
+Select 
+ 		convert (char(10),Fecha,103) Fecha
+		,Familia
+		,codigo
+		,Descripcion
+		,Peso
+		,sum(Venta)Venta
+        ,sum(Devol)Devol
+        ,sum(Cantidad_Tot)cantidad
+        ,sum(Kilos)kios
+        ,sum(importe)importe
+        ,sum(Descuento)descuentos
+        ,sum(Subtotal)subtotal
+        ,sum(Especifico)Especifico
+        ,sum(advalorem)advalorem
+        ,sum(itbis)itbis
+        ,sum(TotalVenta)TotalVenta
+        ,sum(Totaldev)Totaldev
+        ,sum(Totaldn)Totaldn
+
+ from #TotalFinal
+ 
+ 
+ 
+ 
+  group by  		
+ 		Fecha 
+		,Familia
+		,codigo
+		,Descripcion
+		,Peso
+
+order by fecha, familia, codigo
+ 
+
+--AJUSTES EN DESCRIPCIONES POR PETICION DE MAURI (PRIMERO VA ADVALOREM Y DESPUES ESPECIFICO) SOLO EN LAYOUT SE-- REVIERTE POR CAMBIO DESDE RAIZ
+
+#layout
+   	column:1{"Fecha"; 30; 0; 0; 0; 1; 0}
+	column:2{"Familia"; 30; 0; 0; 0; 1; 0}
+	column:3{"Codigo"; 30; 0; 0; 0; 0; 0}
+	column:4{"Articulo"; 30; 0; 0; 0; 0; 0}
+	column:5{"Kilos"; 30; 1; 2; 0; 0; 0}
+	this.Column5.Format = "###,###,###,###.#"
+	column:6{"Venta<br>Unidades"; 30; 0; 2; 1; 0; 0}
+	this.Column6.Format = "###,###,###,###"
+	column:7{"Devolucion<br>Unidades"; 30; 0; 2; 1; 0; 0}
+	this.Column7.Format = "###,###,###,###"
+	column:8{"Total<br>Unidades"; 30; 0; 2; 1; 0; 0}
+	this.Column8.Format = "###,###,###,###"
+	column:9{"Total<br>Kilos"; 30; 1; 2; 1; 0; 0}
+	this.Column9.Format = "###,###,###,###.#"
+	column:10{"Importe$"; 30; 2; 0; 1; 0; 0}
+	this.Column10.Format = "###,###,###,###.##"
+	column:11{"Descuento$"; 30; 2; 0; 1; 0; 0}
+	this.Column11.Format = "###,###,###,###.##"
+	column:12{"Subtotal$"; 30; 2; 0; 1; 0; 0}
+	this.Column12.Format = "###,###,###,###.##"
+	column:13{"Especifico$"; 30; 2; 0; 1; 0; 0}
+	this.Column13.Format = "###,###,###,###.##"
+	column:14{"Advalorem$"; 30; 2; 0; 1; 0; 0}
+	this.Column14.Format = "###,###,###,###.##"
+	column:15{"ITBIS$"; 30; 2; 0; 1; 0; 0}
+	this.Column15.Format = "###,###,###,###.##"
+	column:16{"Total<br>Venta $"; 30; 2; 0; 1; 0; 0}
+	this.Column16.Format = "###,###,###,###.##"
+	column:17{"Total<br>Devol $"; 30; 2; 0; 1; 0; 0}
+	this.Column17.Format = "###,###,###,###.##"
+	column:18{"Total $"; 30; 2; 0; 1; 0; 0}
+	this.Column18.Format = "###,###,###,###.##"
+#endlayout
+
+IF (OBJECT_ID('tempdb..#TotalFinal')) IS NOT NULL DROP TABLE #TotalFinal;
+IF (OBJECT_ID('tempdb..#auxfinal')) IS NOT NULL DROP TABLE #auxfinal;
+IF (OBJECT_ID('tempdb..#auximpuestos')) IS NOT NULL DROP TABLE #auximpuestos;

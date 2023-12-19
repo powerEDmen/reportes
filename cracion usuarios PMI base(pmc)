@@ -1,0 +1,31 @@
+select  * 
+from usuariosPMI;
+	--where Usuariopmi (' ycastell2','orodrigu12')
+/*
+insert into usuariosPMI (Usuariopwst,
+Nombre,
+Usuariopmi,
+Correo,
+Clave,
+Status
+)
+values
+
+('pmcretail', 'Owen Rodriguez', 'orodrigu12', 'owen.rodriguez@ca.co.myiqos.com', 'UHdzdDEyMzQq', '1'),
+
+('pmcretail', ' Yuceli Castellanos', 'ycastell2', 'yuceli.castellanos@co.myiqos.com', 'HdzdDEyMzQq', '1');*/
+
+
+---insert into UsuariosPMI values ('pmcretail','Camila calderon',upper('ccaldero'),lower('camila.calderon@ca.co.myiqos.com'),'UHdzdDEyMzQq','1');
+--insert into UsuariosPMI values ('pmcretail','Lina silgado',upper('lsilgado'),lower('lina.silgado@ca.co.myiqos.com'),'UHdzdDEyMzQq','1');
+--insert into UsuariosPMI values ('pmcretail','Aldemar Velez',upper('avelez5'),lower('aldemar.velez@ca.co.myiqos.com'),'UHdzdDEyMzQq','1');
+--insert into UsuariosPMI values ('pmcretail','Andres Correa',upper('acorrea8'),lower('andres.correa@ca.co.myiqos.com'),'UHdzdDEyMzQq','1');
+--insert into UsuariosPMI values ('pmcretail','Eduardo Pardo',upper('Iguerrer4'),lower('laura.guerrero@ca.co.myiqos.com'),'UHdzdDEyMzQq','1');
+--insert into UsuariosPMI values ('pmcretail','Bernardo Perez',upper('bperez8'),lower('bernardo.perez@ca.co.myiqos.com'),'UHdzdDEyMzQq','1');
+--insert into UsuariosPMI values ('pmcretail','Steve Rondon',upper('srondon1'),lower('steven.rondon@ca.co.myiqos.com'),'UHdzdDEyMzQq','1');
+--insert into UsuariosPMI values ('pmcretail','Angie Jimenez',upper('AJIMENEZ19'),lower('angie.jimenez@ca.co.myiqos.com'),'UHdzdDEyMzQq','1');
+--insert into UsuariosPMI values ('pmcretail','Camila Yaima',upper('CYAIMA'),lower('camila.yaima@ca.co.myiqos.com'),'UHdzdDEyMzQq','1');
+--insert into UsuariosPMI values ('pmcretail','Alveiro Soto',upper('ASOTO5'),lower('alveiro.soto@ca.co.myiqos.com'),'UHdzdDEyMzQq','1');
+--insert into UsuariosPMI values ('pmcretail','Gilberth Cordoba',upper('GCORDOBA3'),lower('gilberth.cordoba@ca.co.myiqos.com'),'UHdzdDEyMzQq','1');
+--insert into UsuariosPMI values ('pmcretail','Lauren Cuevas',upper('LCUEVAS3'),lower('lauren.cuevas@ca.co.myiqos.com'),'UHdzdDEyMzQq','1');
+--insert into UsuariosPMI values ('pmcretail','Jesus Londono',upper('JLONDONO7'),lower('jesus.londono@ca.co.myiqos.com'),'UHdzdDEyMzQq','1');
